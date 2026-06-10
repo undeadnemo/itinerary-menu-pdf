@@ -1,0 +1,66 @@
+import html2canvas from 'html2canvas'
+import jsPDF from 'jspdf'
+
+const PAGE_WIDTH_MM = 100  // ~375px at 96dpi
+
+/**
+ * Generate a PDF from the menu preview DOM element.
+ * Produces a single tall page (no splitting) at 3× resolution.
+ * @param {HTMLElement} element - The .menu-card element to capture
+ * @param {string} title - PDF filename title
+ */
+export async function generateMenuPdf(element, title = 'menu') {
+  if (!element) throw new Error('No element to render')
+
+  // Ensure custom fonts are loaded before capture
+  await document.fonts.ready
+
+  // Capture at 3× resolution for sharp output
+  const canvas = await html2canvas(element, {
+    scale: 3,
+    useCORS: true,
+    allowTaint: true,
+    backgroundColor: '#ffffff',
+    logging: false,
+    width: element.scrollWidth,
+    height: element.scrollHeight,
+    onclone: (doc) => {
+      const card = doc.querySelector('.menu-card')
+      if (card) {
+        card.style.height = 'auto'
+        card.style.overflow = 'visible'
+      }
+      // Copy @font-face rules to cloned document
+      const fontStyle = document.getElementById('menu-tool-fontfaces')
+      if (fontStyle) {
+        const clone = doc.createElement('style')
+        clone.id = 'menu-tool-fontfaces'
+        clone.textContent = fontStyle.textContent
+        doc.head.appendChild(clone)
+      }
+    },
+  })
+
+  const imgData = canvas.toDataURL('image/jpeg', 0.95)
+  const imgWidthMm = PAGE_WIDTH_MM
+  const imgHeightMm = (canvas.height * imgWidthMm) / canvas.width
+
+  // Single page — no splitting
+  const pdf = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: [imgWidthMm, imgHeightMm],
+  })
+
+  pdf.addImage(imgData, 'JPEG', 0, 0, imgWidthMm, imgHeightMm)
+
+  const filename = sanitizeFilename(title)
+  pdf.save(filename)
+}
+
+function sanitizeFilename(name) {
+  return name
+    .replace(/[\\/:*?"<>|]/g, '_')
+    .replace(/\s+/g, '_')
+    .substring(0, 100) + '.pdf'
+}
