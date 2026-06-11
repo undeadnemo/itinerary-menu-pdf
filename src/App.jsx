@@ -193,7 +193,7 @@ export default function App() {
     } finally {
       setIsGenerating(false)
     }
-  }, [menuData, showToast])
+  }, [menuData, menuTitle, showToast])
 
   const handleSaveBackup = useCallback(() => {
     const data = JSON.stringify({
