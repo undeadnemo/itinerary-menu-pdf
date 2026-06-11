@@ -11,9 +11,10 @@
  * 无需每个用户单独上传。
  */
 const presetFonts = [
-  // 在此添加预置字体：
-  // { name: '字魂书雅颂', file: '字魂书雅颂.ttf' },
-  // { name: 'MyFont', file: 'MyFont.woff2' },
+  { name: '字魂书雅宋-Regular', file: '字魂书雅宋-Regular.ttf' },
+  { name: '字魂书雅宋-Medium', file: '字魂书雅宋-Medium.ttf' },
+  { name: '字魂书雅宋-Bold', file: '字魂书雅宋-Bold.ttf' },
+  { name: '字魂书雅宋-Light', file: '字魂书雅宋-Light.ttf' },
 ]
 
 export default presetFonts

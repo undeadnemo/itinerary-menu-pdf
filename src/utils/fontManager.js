@@ -17,6 +17,13 @@ function getFontInfo(fileName) {
   return FONT_FORMATS[ext] || FONT_FORMATS['.ttf']
 }
 
+function formatToMime(format) {
+  for (const key of Object.keys(FONT_FORMATS)) {
+    if (FONT_FORMATS[key].format === format) return FONT_FORMATS[key].mime
+  }
+  return 'font/ttf'
+}
+
 function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
@@ -80,7 +87,7 @@ function blobToDataURL(blob) {
 
 // ─── 预置字体 ───
 export function loadPresetFont(name, file) {
-  injectFontFace(name, `/fonts/${file}`, 'truetype')
+  injectFontFace(name, `./fonts/${file}`, 'truetype')
 }
 
 // ─── 上传字体 ───
@@ -90,23 +97,26 @@ export async function uploadFonts(files) {
 
   for (const file of list) {
     try {
-      const { format } = getFontInfo(file.name)
+      const info = getFontInfo(file.name)
       const name = file.name.replace(/\.[^.]+$/, '')
       if (loaded.includes(name)) continue
 
-      // 文件直接转 data: URL（简化链路，一步到位）
-      const dataUrl = await fileToDataURL(file)
+      // 读 ArrayBuffer（一次读取，复用）
+      const arrayBuffer = await file.arrayBuffer()
+
+      // 用正确 MIME 创建 Blob → data: URL
+      const blob = new Blob([arrayBuffer], { type: info.mime })
+      const dataUrl = await blobToDataURL(blob)
 
       // 注入 @font-face（无 font-display: swap）
-      injectFontFace(name, dataUrl, format)
+      injectFontFace(name, dataUrl, info.format)
       loaded.push(name)
 
-      // 持久化到 IndexedDB
+      // 持久化到 IndexedDB（复用 arrayBuffer）
       try {
-        const arrayBuffer = await file.arrayBuffer()
         const db = await openDB()
         const tx = db.transaction(STORE_NAME, 'readwrite')
-        tx.objectStore(STORE_NAME).put({ name, data: arrayBuffer, format })
+        tx.objectStore(STORE_NAME).put({ name, data: arrayBuffer, format: info.format })
         await new Promise((resolve, reject) => {
           tx.oncomplete = resolve; tx.onerror = reject
         })
@@ -135,7 +145,7 @@ export async function loadSavedFonts() {
 
     for (const font of all) {
       try {
-        const blob = new Blob([font.data], { type: 'application/octet-stream' })
+        const blob = new Blob([font.data], { type: formatToMime(font.format) })
         const dataUrl = await blobToDataURL(blob)
         injectFontFace(font.name, dataUrl, font.format)
         names.push(font.name)

@@ -88,7 +88,8 @@ export default function MenuPreview({ menuData, headerImage, bgColor, footerImag
           className="menu-body"
         >
           <div className="menu-content" style={{
-            padding: '0 20px',
+            paddingLeft: 20,
+            paddingRight: 20,
             ...(headerImage ? { marginTop: headerOverlap ?? -36 } : { paddingTop: 20 }),
           }}>
 

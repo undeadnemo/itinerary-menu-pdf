@@ -5,8 +5,9 @@ import MenuPreview from './components/MenuPreview'
 import StyleSettings from './components/StyleSettings'
 import { generateMenuPdf } from './utils/pdfGenerator'
 import { saveToLocal, loadFromLocal, KEYS } from './utils/storage'
-import { loadSavedFonts, loadPresetFont } from './utils/fontManager'
+import { loadSavedFonts, loadPresetFont, getSavedFontNames, deleteFont } from './utils/fontManager'
 import presetFonts from './utils/presetFonts'
+import sampleData from './data/sampleData'
 
 const STORAGE_KEYS = {
   ...KEYS,
@@ -20,12 +21,12 @@ const STORAGE_KEYS = {
 }
 
 const DEFAULT_STYLES = {
-  title: { font: 'PingFang SC', size: 14, color: '#2D2D2D' },
-  mainCategory: { font: 'PingFang SC', size: 24, color: '#2D2D2D' },
-  mainEn: { font: 'PingFang SC', size: 14, color: '#888888' },
-  subCategory: { font: 'PingFang SC', size: 16, color: '#D6A573' },
-  dishName: { font: 'PingFang SC', size: 14, color: '#2D2D2D' },
-  dishDesc: { font: 'PingFang SC', size: 12, color: '#888888' },
+  title: { font: '字魂书雅宋-Regular', size: 14, color: '#BFA281' },
+  mainCategory: { font: '字魂书雅宋-Bold', size: 24, color: '#2D2D2D' },
+  mainEn: { font: '字魂书雅宋-Regular', size: 16, color: '#888888' },
+  subCategory: { font: '字魂书雅宋-Bold', size: 16, color: '#ad7e52' },
+  dishName: { font: '字魂书雅宋-Medium', size: 14, color: '#2D2D2D' },
+  dishDesc: { font: '字魂书雅宋-Regular', size: 12, color: '#888888' },
 }
 
 export default function App() {
@@ -36,11 +37,11 @@ export default function App() {
   const [decoImage, setDecoImage] = useState(null)
 
   // Title state (overrides JSON title)
-  const [menuTitle, setMenuTitle] = useState('')
+  const [menuTitle, setMenuTitle] = useState('餐单标题')
   const [titleHeight, setTitleHeight] = useState(136)
 
   // Overlap spacing
-  const [headerOverlap, setHeaderOverlap] = useState(-36)
+  const [headerOverlap, setHeaderOverlap] = useState(-60)
   const [footerOverlap, setFooterOverlap] = useState(-100)
 
   // JSON state
@@ -78,7 +79,7 @@ export default function App() {
     if (savedDeco) setDecoImage(savedDeco)
     if (savedMenuTitle !== null) setMenuTitle(savedMenuTitle)
     if (savedTitleHeight !== null) setTitleHeight(parseInt(savedTitleHeight, 10) || 136)
-    if (savedHeaderOverlap !== null) setHeaderOverlap(parseInt(savedHeaderOverlap, 10) || -36)
+    if (savedHeaderOverlap !== null) setHeaderOverlap(parseInt(savedHeaderOverlap, 10) || -60)
     if (savedFooterOverlap !== null) setFooterOverlap(parseInt(savedFooterOverlap, 10) || -100)
 
     if (savedStyles) {
@@ -96,6 +97,34 @@ export default function App() {
           setMenuData(parsed)
         }
       } catch { /* ignore */ }
+    } else {
+      // First visit — load sample data + images as a quick start
+      const raw = JSON.stringify(sampleData, null, 2)
+      setJsonRaw(raw)
+      setMenuData(sampleData)
+
+      // Load default images from public/
+      const loadDefaultImage = async (url) => {
+        try {
+          const resp = await fetch(url)
+          const blob = await resp.blob()
+          return new Promise((resolve) => {
+            const reader = new FileReader()
+            reader.onload = () => resolve(reader.result)
+            reader.readAsDataURL(blob)
+          })
+        } catch { return null }
+      };
+      (async () => {
+        const [hdr, ftr, dec] = await Promise.all([
+          loadDefaultImage('./header.png'),
+          loadDefaultImage('./footer.png'),
+          loadDefaultImage('./deco.png'),
+        ])
+        if (hdr) setHeaderImage(hdr)
+        if (ftr) setFooterImage(ftr)
+        if (dec) setDecoImage(dec)
+      })()
     }
 
     // Load preset fonts (public/fonts/) — available to all users
@@ -218,7 +247,7 @@ export default function App() {
 
   const handleClearAll = useCallback(() => {
     setHeaderImage(null); setBgColor('#FFFFFF'); setFooterImage(null); setDecoImage(null)
-    setMenuTitle(''); setTitleHeight(136); setHeaderOverlap(-36); setFooterOverlap(-100); setJsonRaw(''); setMenuData(null)
+    setMenuTitle(''); setTitleHeight(136); setHeaderOverlap(-60); setFooterOverlap(-100); setJsonRaw(''); setMenuData(null)
     setStyles(DEFAULT_STYLES)
     ;[STORAGE_KEYS.HEADER_IMAGE, STORAGE_KEYS.BG_COLOR, STORAGE_KEYS.FOOTER_IMAGE,
       STORAGE_KEYS.DECO_IMAGE, STORAGE_KEYS.MENU_TITLE, STORAGE_KEYS.TITLE_HEIGHT,
@@ -227,6 +256,8 @@ export default function App() {
       (k) => localStorage.removeItem(k)
     )
     showToast('🗑️ 已清除所有数据')
+    getSavedFontNames().then(names => names.forEach(n => deleteFont(n)))
+    setCustomFonts([])
   }, [showToast])
 
   const hasData = headerImage || footerImage || decoImage || jsonRaw
@@ -244,6 +275,43 @@ export default function App() {
       <div className="workspace no-pdf">
         {/* Left panel — Inputs */}
         <div className="workspace-inputs">
+          {/* Menu Title Card */}
+          <div className="card">
+            <div className="card-title">
+              📝 餐单标题
+              <span className="badge">自定义</span>
+            </div>
+            <div className="title-input-section">
+              <div className="title-input-row">
+                <input
+                  type="text"
+                  className="title-text-input"
+                  value={menuTitle}
+                  onChange={(e) => setMenuTitle(e.target.value)}
+                  placeholder="输入餐单标题…"
+                />
+              </div>
+              <div className="title-height-row">
+                <span className="title-height-label">距离顶部</span>
+                <div className="size-control" style={{ display: 'inline-flex' }}>
+                  <button className="size-btn" onClick={() => setTitleHeight(Math.max(40, titleHeight - 5))}>−</button>
+                  <input
+                    type="number"
+                    className="size-control input"
+                    value={titleHeight}
+                    min={40}
+                    max={400}
+                    step={5}
+                    onChange={(e) => setTitleHeight(parseInt(e.target.value, 10) || 136)}
+                    style={{ width: 50 }}
+                  />
+                  <button className="size-btn" onClick={() => setTitleHeight(Math.min(400, titleHeight + 5))}>+</button>
+                </div>
+                <span className="title-height-unit">px</span>
+              </div>
+            </div>
+          </div>
+
           {/* JSON Editor */}
           <div className="card">
             <div className="card-title">
@@ -339,38 +407,7 @@ export default function App() {
               </div>
 
               {/* Menu title input */}
-              <div className="title-input-section">
-                <div className="image-upload-header">
-                  <span className="image-upload-label">📝 餐单标题</span>
-                </div>
-                <div className="title-input-row">
-                  <input
-                    type="text"
-                    className="title-text-input"
-                    value={menuTitle}
-                    onChange={(e) => setMenuTitle(e.target.value)}
-                    placeholder="例如：6.11 安科纳法尔科纳拉-北京大兴"
-                  />
-                </div>
-                <div className="title-height-row">
-                  <span className="title-height-label">距离顶部</span>
-                  <div className="size-control" style={{ display: 'inline-flex' }}>
-                    <button className="size-btn" onClick={() => setTitleHeight(Math.max(40, titleHeight - 5))}>−</button>
-                    <input
-                      type="number"
-                      className="size-control input"
-                      value={titleHeight}
-                      min={40}
-                      max={400}
-                      step={5}
-                      onChange={(e) => setTitleHeight(parseInt(e.target.value, 10) || 136)}
-                      style={{ width: 50 }}
-                    />
-                    <button className="size-btn" onClick={() => setTitleHeight(Math.min(400, titleHeight + 5))}>+</button>
-                  </div>
-                  <span className="title-height-unit">px</span>
-                </div>
-              </div>
+              {/* 已移到独立的「餐单标题」卡片中 */}
 
               <div className="bg-color-picker">
                 <div className="image-upload-header">

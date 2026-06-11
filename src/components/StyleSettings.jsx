@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
-import { uploadFonts } from '../utils/fontManager'
+import { uploadFonts, deleteFont } from '../utils/fontManager'
 
 const PRESET_FONTS = [
   { label: '苹方 (PingFang SC)', value: 'PingFang SC' },
@@ -58,6 +58,13 @@ export default function StyleSettings({ styles, onChange, customFonts, onFontsCh
     } finally {
       setUploading(false)
     }
+  }, [customFonts, onFontsChange])
+
+  // Delete a font
+  const handleDeleteFont = useCallback(async (e, fontName) => {
+    e.stopPropagation()
+    await deleteFont(fontName)
+    onFontsChange(customFonts.filter(n => n !== fontName))
   }, [customFonts, onFontsChange])
 
   // Click a loaded font tag → apply to all levels
@@ -124,6 +131,11 @@ export default function StyleSettings({ styles, onChange, customFonts, onFontsCh
                 title="点击应用到所有层级"
               >
                 {name}
+                <button
+                  className="font-delete-btn"
+                  onClick={(e) => handleDeleteFont(e, name)}
+                  title="删除此字体"
+                >✕</button>
               </span>
             ))}
           </div>
