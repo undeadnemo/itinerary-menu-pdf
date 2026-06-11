@@ -183,7 +183,8 @@ export default function App() {
     try {
       const card = previewRef.current.querySelector('.menu-card')
       if (!card) throw new Error('Menu card not found')
-      const pdfTitle = `定制餐单-${menuTitle || '菜单'}`
+      const jsonTitle = menuData?.title
+      const pdfTitle = `定制餐单-${menuTitle || jsonTitle || '菜单'}`
       await generateMenuPdf(card, pdfTitle)
       showToast('✅ PDF 已生成并下载')
     } catch (err) {
