@@ -27,6 +27,7 @@ body {
   color: var(--text-primary);
   background: #F5F3EF;
   min-height: 100vh;
+  overflow: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -35,6 +36,9 @@ body {
   max-width: 1400px;
   margin: 0 auto;
   padding: 20px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .app-header {
@@ -44,6 +48,7 @@ body {
   margin-bottom: 24px;
   padding-bottom: 16px;
   border-bottom: 2px solid var(--gold-light);
+  flex-shrink: 0;
 }
 
 .app-header h1 {
@@ -63,6 +68,20 @@ body {
   grid-template-columns: 480px 1fr;
   gap: 24px;
   align-items: start;
+  flex: 1;
+  min-height: 0;
+}
+
+.workspace-inputs,
+.workspace-preview {
+  overflow-y: auto;
+  max-height: calc(100vh - 140px);
+  overscroll-behavior: contain;
+}
+
+.workspace-preview {
+  position: sticky;
+  top: 0;
 }
 
 @media (max-width: 960px) {
