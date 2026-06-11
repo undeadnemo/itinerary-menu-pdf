@@ -70,7 +70,7 @@ export async function generateMenuPdf(element, title = 'menu') {
 
   try {
     const canvas = await html2canvas(element, {
-      scale: 4,
+      scale: 3,
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#ffffff',
@@ -103,7 +103,7 @@ export async function generateMenuPdf(element, title = 'menu') {
 
     restoreFonts()
 
-    const imgData = canvas.toDataURL('image/jpeg', 0.98)
+    const imgData = canvas.toDataURL('image/jpeg', 0.95)
     const imgHeightMm = (canvas.height * PAGE_WIDTH_MM) / canvas.width
 
     const pdf = new jsPDF({
